@@ -37,8 +37,7 @@ module Clickhouse
     private
 
       def client
-        binding.pry
-        @client ||= Faraday.new(:url => url)
+        @client ||= Faraday.new(:url => url, request: { timeout: 300 })
       end
 
       def ensure_authentication
@@ -60,7 +59,17 @@ module Clickhouse
         query = query.strip
         start = Time.now
 
-        response = client.send(method, path(query), body)
+        response = \
+          if query.length > 8_000
+            client.post do |req|
+              req.headers['Content-Type'] = 'application/octet-stream'
+              req.body = query.to_s
+            end
+
+          else
+            client.send(method, path(query), body)
+          end
+
         status = response.status
         duration = Time.now - start
         query, format = Utils.extract_format(query)
