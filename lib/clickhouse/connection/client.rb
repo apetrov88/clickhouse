@@ -37,6 +37,7 @@ module Clickhouse
     private
 
       def client
+        binding.pry
         @client ||= Faraday.new(:url => url)
       end
 
